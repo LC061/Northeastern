@@ -1,0 +1,158 @@
+---
+title: "Project"
+author: "Liuyi Cui"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(lubridate)
+```
+
+
+## R Markdown
+
+```{r}
+avocado <- read_csv("avocado.csv")
+avocado_prop <- avocado %>%
+  group_by(region, type) %>%
+  summarise(`Total Volume` = sum(`Total Volume`)) %>%
+  mutate(prop = `Total Volume` / sum(`Total Volume`))
+```
+
+```{r}
+Por1<-ggplot(avocado_prop, aes(y = region, x = prop, fill = type)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ region, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  ggtitle("Proportion of Total Volume Sold by type in Each Region") +
+  labs(x = "Proportion", y = NULL, fill = "Type")
+Por1
+```
+
+```{r}
+ggsave(file = "avocado_hist.png", plot = Por1, width = 20, height = 10, dpi = 500)
+```
+
+```{r}
+prop_by_all_region <- avocado %>%
+  group_by(region) %>%
+  summarize(prop_volume = sum(`Total Volume`)/sum(avocado$`Total Volume`))
+```
+
+
+```{r}
+por3 <- ggplot(prop_by_all_region, aes(x = prop_volume, y = region)) +
+  geom_histogram(stat = "identity", bins = 10, fill = "blue", color = "white") +
+  ggtitle("Proportion of Total Volume Sold by Region") +
+  xlab("Proportion of Total Volume") +
+  ylab("Region") +
+  theme_minimal()
+por3
+```
+
+```{r}
+ggsave(file = "avocado_hist3.png", plot = por3, width = 20, height = 10, dpi = 500)
+```
+
+```{r}
+regions_to_drop <- c("West", "TotalUS","WestTexNewMexico","California","Northeast","Southeast","SouthCentral","GreatLakes","Midsouth")
+regiondata <- avocado %>% filter(!region %in% regions_to_drop)
+
+prop_by_region <- regiondata %>%
+  group_by(region) %>%
+  summarize(prop_volume = sum(`Total Volume`)/sum(avocado$`Total Volume`))
+
+```
+
+```{r}
+por2 <- ggplot(prop_by_region, aes(x = prop_volume, y = region)) +
+  geom_histogram(stat = "identity", bins = 10, fill = "blue", color = "white") +
+  ggtitle("Proportion of Total Volume Sold by Region") +
+  xlab("Proportion of Total Volume") +
+  ylab("Region") +
+  theme_minimal()
+por2
+```
+
+```{r}
+ggsave(file = "avocado_hist2.png", plot = por2, width = 20, height = 10, dpi = 500)
+```
+
+```{r}
+plt1 <- ggplot(avocado, aes(x = `Total Volume`, y = AveragePrice, color = year)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Total Volume", y = "Average Price", title = "Correlation between Average Avocado Price and Total Volume by Year") +
+  theme_bw() +
+  facet_wrap(~ year, ncol = 2)
+plt1
+```
+
+```{r}
+ggsave(file = "avocado_plt1.png", plot = plt1, width = 20, height = 10, dpi = 500)
+```
+
+
+```{r}
+str(avocado$Date)
+avocado$Date <- as.Date(avocado$Date, format = "%Y-%m-%d")
+
+# convert the date column to a date object
+regiondata$Date <- as.Date(regiondata$Date)
+
+# create a new column for month
+regiondata <- regiondata %>% 
+  mutate(month = floor_date(Date, unit = "month"))
+
+# calculate the monthly average price and total volume
+monthly_data <- regiondata %>% 
+  group_by(region, type, month,year) %>% 
+  summarise(avg_price = mean(AveragePrice),
+            total_volume = sum(`Total Volume`))
+```
+
+
+```{r}
+plt <- ggplot(monthly_data, aes(x = total_volume, y = avg_price, color = year)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Total Volume", y = "Average Price", title = "Correlation between Average Avocado Price and Total Volume by Year") +
+  theme_bw() +
+  facet_wrap(~ year, ncol = 2)
+plt
+```
+```{r}
+ggsave(file = "avocado_plt.png", plot = plt, width = 20, height = 10, dpi = 500)
+```
+
+```{r}
+avocado %>%
+  group_by(year) %>%
+  summarise(correlation = cor(AveragePrice, `Total Volume`))
+```
+
+
+```{r}
+regiondata %>%
+  group_by(year) %>%
+  summarise(correlation = cor(AveragePrice, `Total Volume`))
+```
+
+```{r}
+cor.test(x = avocado$AveragePrice, y = avocado$`Total Volume`)
+```
+```{r}
+cor.test(regiondata$AveragePrice,regiondata$`Total Volume`)
+```
+
+
+
+
